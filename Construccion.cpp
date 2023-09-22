@@ -2,8 +2,9 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <queue>
 #include <algorithm>
+#include <stack>
+#include <queue>
 
 using namespace std;
 
@@ -25,7 +26,6 @@ public:
     vector<PiezaLego> piezasNecesarias;
 };
 
-// Función para construir una casa
 void ConstruirCasa(const unordered_map<string, int> &partesDeseadas, unordered_map<string, int> &piezasDisponibles)
 {
     // Definir las partes de la casa y la cantidad de piezas de cada tipo
@@ -43,28 +43,34 @@ void ConstruirCasa(const unordered_map<string, int> &partesDeseadas, unordered_m
 
     // Inicializar las partes de la casa y sus piezas necesarias
     for (const CasaPart &parte : partesCasa)
-    {   
-        cout << parte << endl;
+    {
         partesConstruidas[parte.nombreParte] = 0;
     }
 
-    // Mostrar la cantidad de piezas disponibles
-    cout << "Cantidad de piezas disponibles:" << endl;
-    for (const auto &par : piezasDisponibles)
-    {
-        cout << par.first << ": " << par.second << endl;
-    }
+    // Crear una pila para rastrear las partes por hacer
+    stack<string> partesPorHacer;
+
+    // Crear una cola para las partes terminadas
+    queue<string> partesTerminadas;
 
     // Ordenar las partes de la casa según prioridad
     vector<string> prioridad = {"Cimientos","Pared", "ParedConPuerta", "ParedConVentana", "Piso", "Techo", "Terraza", "Piscina"};
 
+    // Agregar las partes deseadas a la pila de partes por hacer
     for (const string &parteActual : prioridad)
     {
-        if (partesDeseadas.find(parteActual) == partesDeseadas.end())
+        if (partesDeseadas.find(parteActual) != partesDeseadas.end())
         {
-            // La parte no está en la lista de partes deseadas, omitir
-            continue;
+            partesPorHacer.push(parteActual);
         }
+    }
+    bool restriccionesNoCumplidas = false;
+    while (!partesPorHacer.empty())
+    {
+        string parteActual = partesPorHacer.top();
+        partesPorHacer.pop();
+
+        
 
         int cantidadDeseada = partesDeseadas.at(parteActual);
 
@@ -86,7 +92,20 @@ void ConstruirCasa(const unordered_map<string, int> &partesDeseadas, unordered_m
             continue;
         }
 
-        // Resto del código...
+        // Verificar restricciones adicionales
+        if (parteActual == "Pared" && partesConstruidas["Cimientos"] == 0)
+        {
+            cout << "No se puede construir " << parteActual << " sin cimientos." << endl;
+            restriccionesNoCumplidas = true;
+            break; // Finalizar la construcción de esta parte debido a restricciones
+        }
+        else if (parteActual == "Techo" && partesConstruidas["Pared"] < 4)
+        {
+            cout << "No se puede construir " << parteActual << " sin al menos 4 paredes." << endl;
+            restriccionesNoCumplidas = true;
+            break; // Finalizar la construcción de esta parte debido a restricciones
+        }
+        
 
         // Verificar si la parte puede construirse
         bool construible = true;
@@ -115,6 +134,9 @@ void ConstruirCasa(const unordered_map<string, int> &partesDeseadas, unordered_m
             {
                 partesConstruidas["Pared"]--;
             }
+
+            // Agregar la parte construida a la cola de partes terminadas
+            partesTerminadas.push(parteActual);
         }
         else
         {
@@ -124,6 +146,9 @@ void ConstruirCasa(const unordered_map<string, int> &partesDeseadas, unordered_m
                 cout << "Se requiere una Pared adicional para construir Ventanas o Puertas." << endl;
                 return; // Finalizar el programa debido a restricciones
             }
+
+            // Reintentar construir la parte más tarde, si es posible
+            partesPorHacer.push(parteActual);
         }
     }
 
@@ -139,9 +164,19 @@ void ConstruirCasa(const unordered_map<string, int> &partesDeseadas, unordered_m
         }
     }
 
-    if (construccionExitosa)
+    // Imprimir las partes terminadas
+    
+    cout << "Partes terminadas:" << endl;
+    while (!partesTerminadas.empty())
     {
-        cout << "La construcción de la casa se ha completado con éxito." << endl;
+        cout << partesTerminadas.front() << endl;
+        partesTerminadas.pop();
+    }
+
+    // Verificar si todas las partes deseadas se han construido y mostrar el mensaje correspondiente
+    if (construccionExitosa && partesTerminadas.size() == partesDeseadas.size())
+    {
+        cout << "La construcción de la casa se ha completado exitosamente." << endl;
     }
     else
     {
@@ -159,6 +194,7 @@ int main()
 
     // Indica la cantidad de piezas disponibles
     unordered_map<string, int> piezasDisponibles = {
+        {"J", 6},
         {"A", 50},
         {"J", 6},
         {"B", 5},
